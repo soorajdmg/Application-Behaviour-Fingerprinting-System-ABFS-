@@ -21,12 +21,13 @@ def get_pids_with_visible_windows():
         if ex_style & win32con.WS_EX_TOOLWINDOW:
             return True
 
-        # Check window size - skip tiny/hidden windows
-        rect = win32gui.GetWindowRect(hwnd)
-        width = rect[2] - rect[0]
-        height = rect[3] - rect[1]
-        if width < 50 or height < 50:
-            return True
+        # Check window size - skip tiny/hidden windows (but allow minimized ones)
+        if not win32gui.IsIconic(hwnd):
+            rect = win32gui.GetWindowRect(hwnd)
+            width = rect[2] - rect[0]
+            height = rect[3] - rect[1]
+            if width < 50 or height < 50:
+                return True
 
         _, pid = win32process.GetWindowThreadProcessId(hwnd)
         pids.add(pid)
