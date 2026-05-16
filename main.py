@@ -5,6 +5,7 @@ CLI entry point and phase orchestration controller.
 
 Usage:
   python main.py list [--filter NAME]
+  python main.py list apps [--filter NAME]
   python main.py analyze --pid PID [PID ...] [--no-hash] [--baseline-only]
 """
 
@@ -50,7 +51,15 @@ def _build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # ── list subcommand ───────────────────────────────────────────────────
-    list_p = subparsers.add_parser("list", help="List running processes")
+    list_p = subparsers.add_parser("list", help="List running processes or GUI applications")
+    list_p.add_argument(
+        "subcommand",
+        nargs="?",
+        choices=["apps"],
+        default=None,
+        metavar="apps",
+        help="'apps' to show only interactive GUI applications (windows only)",
+    )
     list_p.add_argument(
         "--filter",
         metavar="NAME",
@@ -88,14 +97,17 @@ def _build_parser() -> argparse.ArgumentParser:
 # ── Command handlers ──────────────────────────────────────────────────────
 
 def _cmd_list(args) -> int:
-    """Handle the 'list' subcommand."""
-    processes = process_discovery.list_processes(args.filter)
-
-    # Load baseline store to mark processes that already have a baseline
+    """Handle the 'list' subcommand (and 'list apps' variant)."""
     store = baseline_store.load_store()
     baseline_keys = set(store.keys())
 
-    renderer.print_process_list(processes, baseline_keys)
+    if args.subcommand == "apps":
+        apps = process_discovery.list_apps(args.filter)
+        renderer.print_app_list(apps, baseline_keys)
+    else:
+        processes = process_discovery.list_processes(args.filter)
+        renderer.print_process_list(processes, baseline_keys)
+
     return 0
 
 

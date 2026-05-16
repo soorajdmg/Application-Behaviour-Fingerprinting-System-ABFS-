@@ -36,7 +36,7 @@ from watchdog.events import FileSystemEventHandler
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def _snapshot_net() -> psutil._common.snetio:
+def _snapshot_net():
     """Return current system-wide network I/O counters."""
     return psutil.net_io_counters()
 

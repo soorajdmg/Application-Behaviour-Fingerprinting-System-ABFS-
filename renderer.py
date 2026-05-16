@@ -294,6 +294,82 @@ def print_process_list(processes: list[dict], baseline_keys: set = None) -> None
     print(_divider("="))
 
 
+def print_app_list(apps: list[dict], baseline_keys: set = None) -> None:
+    """
+    Print a card-style list of running GUI applications only.
+    Each unique executable is one card. Output for `python main.py list apps`.
+    """
+    from process_discovery import normalize_exe
+
+    if baseline_keys is None:
+        baseline_keys = set()
+
+    W = REPORT_WIDTH
+
+    # ── Group by normalized exe path ──────────────────────────────────────
+    groups: dict[str, dict] = {}
+    for proc in apps:
+        exe = proc["exe"] or ""
+        key = normalize_exe(exe) if exe else ("__noexe__" + proc["name"])
+        if key not in groups:
+            groups[key] = {
+                "name":     proc["name"],
+                "exe":      exe,
+                "pids":     [],
+                "statuses": set(),
+            }
+        groups[key]["pids"].append(proc["pid"])
+        groups[key]["statuses"].add(proc["status"])
+
+    sorted_groups = sorted(groups.items(), key=lambda kv: kv[1]["name"].lower())
+
+    # ── Header ────────────────────────────────────────────────────────────
+    print(_divider("="))
+    print("  ABFS  ·  Running Applications  (GUI only)")
+    print(_divider("="))
+
+    if not sorted_groups:
+        print("  (no GUI applications detected)")
+        print(_divider("="))
+        return
+
+    for idx, (key, g) in enumerate(sorted_groups):
+        pids         = sorted(g["pids"])
+        name         = g["name"]
+        exe          = g["exe"]
+        proc_count   = len(pids)
+        has_baseline = key in baseline_keys
+        status       = sorted(g["statuses"])[0]
+
+        badge = " [B]" if has_baseline else ""
+        tag   = (" (%d processes)" % proc_count) if proc_count > 1 else ""
+        print("  %s%s%s" % (name, tag, badge))
+
+        exe_prefix  = "  \u2514 "
+        max_exe_len = W - len(exe_prefix)
+        exe_display = ("..." + exe[-(max_exe_len - 3):]) if len(exe) > max_exe_len else exe
+        print("%s%s" % (exe_prefix, exe_display))
+
+        if proc_count == 1:
+            print("    PID    : %d  |  status: %s" % (pids[0], status))
+        else:
+            print("    PIDs   : ", end="")
+            pid_lines = _wrap_pids(pids, indent=13, width=W)
+            print(pid_lines[0].lstrip())
+            for pl in pid_lines[1:]:
+                print(pl)
+            print("    Status : %s  |  To analyze: --pid %s"
+                  % (status, " ".join(str(p) for p in pids)))
+
+        if idx < len(sorted_groups) - 1:
+            print("  " + _divider("-")[:W - 2])
+
+    # ── Footer ────────────────────────────────────────────────────────────
+    print(_divider("="))
+    print("  %d GUI application(s) running  ·  [B] = baseline on disk" % len(groups))
+    print(_divider("="))
+
+
 def print_baseline_progress(elapsed: float, total: float) -> None:
     """Print an inline progress bar during baseline learning (overwrites current line)."""
     pct = (elapsed / total) * 100.0 if total > 0 else 0
