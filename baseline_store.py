@@ -45,3 +45,12 @@ def save_baseline(store: dict, exe_key: str, fingerprint: dict) -> None:
     """Insert or replace a baseline fingerprint and persist to disk."""
     store[exe_key] = fingerprint
     save_store(store)
+
+def remove_baseline(store: dict, exe_key: str) -> bool:
+    """Remove a baseline fingerprint and persist to disk. Returns True if removed."""
+    if exe_key in store:
+        del store[exe_key]
+        save_store(store)
+        return True
+    return False
+

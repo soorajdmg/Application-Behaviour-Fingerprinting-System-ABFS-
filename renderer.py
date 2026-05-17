@@ -153,16 +153,40 @@ def print_report(
         p("  Identity penalty  : +%.0f pts  (exe or hash mismatch detected)"
           % analysis_result["identity_penalty"])
 
+    # ── Colors ───────────────────────────────────────────────────────────
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
+
+    verdict = analysis_result["verdict"]
+    risk_level = analysis_result["risk_level"]
+    
+    # Determine color theme for the summary
+    if risk_level == "HIGH":
+        c = RED
+    elif risk_level == "MEDIUM":
+        c = YELLOW
+    else:
+        c = GREEN
+
     # ── Section 5: Similarity Scores ─────────────────────────────────────
     p(_section("5. SIMILARITY SCORES"))
-    p("  CPU     (40%%)  %s" % render_bar(analysis_result["cpu_similarity"]))
-    p("  Files   (35%%)  %s" % render_bar(analysis_result["file_similarity"]))
-    p("  Network (25%%)  %s" % render_bar(analysis_result["network_similarity"]))
+    
+    cpu_info = "  (Base: %.1f%% → Cur: %.1f%%)" % (bc["mean"], rc["mean"])
+    file_info = "  (Base: %d paths → Cur: %d paths)" % (len(bf["accessed_paths"]), len(rf["accessed_paths"]))
+    net_info = "  (Base: %s → Cur: %s)" % (_fmt_bytes(baseline_net), _fmt_bytes(runtime_net))
+    
+    # Apply color to the info text to make it stand out
+    p("  CPU     (40%%)  %s%s%s%s" % (render_bar(analysis_result["cpu_similarity"]), c, cpu_info, RESET))
+    p("  Files   (35%%)  %s%s%s%s" % (render_bar(analysis_result["file_similarity"]), c, file_info, RESET))
+    p("  Network (25%%)  %s%s%s%s" % (render_bar(analysis_result["network_similarity"]), c, net_info, RESET))
+    
     p("  " + _divider("-")[:40])
     p("  Match Score    %s" % render_bar(analysis_result["match_score"]))
 
     # ── Section 6: Risk Assessment ───────────────────────────────────────
-    p(_section("6. RISK ASSESSMENT"))
+    p(c + _section("6. RISK ASSESSMENT"))
     p("  Fingerprint Match Score : %.1f%%" % analysis_result["match_score"])
     penalty = analysis_result.get("identity_penalty", 0)
     if penalty > 0:
@@ -171,23 +195,21 @@ def print_report(
     p("  Risk Level              : %s" % analysis_result["risk_level"])
     p("")
 
-    verdict = analysis_result["verdict"]
-    risk_level = analysis_result["risk_level"]
     if verdict == "NORMAL":
         p("  ╔══════════════════════════════════════╗")
         p("  ║  VERDICT:  NORMAL                    ║")
         p("  ║  Behaviour matches baseline profile  ║")
-        p("  ╚══════════════════════════════════════╝")
+        p("  ╚══════════════════════════════════════╝" + RESET)
     elif risk_level == "MEDIUM":
         p("  ╔══════════════════════════════════════╗")
         p("  ║  VERDICT:  ABNORMAL  [MEDIUM RISK]   ║")
         p("  ║  Moderate deviation from baseline    ║")
-        p("  ╚══════════════════════════════════════╝")
+        p("  ╚══════════════════════════════════════╝" + RESET)
     else:
         p("  ╔══════════════════════════════════════╗")
         p("  ║  VERDICT:  ABNORMAL  [HIGH RISK]     ║")
         p("  ║  Significant deviation detected      ║")
-        p("  ╚══════════════════════════════════════╝")
+        p("  ╚══════════════════════════════════════╝" + RESET)
 
     p("\n" + _divider("="))
 

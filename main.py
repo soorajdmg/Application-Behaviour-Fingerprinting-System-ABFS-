@@ -90,6 +90,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Record or refresh baseline only; skip runtime monitoring",
     )
+    analyze_p.add_argument(
+        "--remove-baseline",
+        action="store_true",
+        help="Remove the stored baseline for the given PID's executable and exit",
+    )
 
     return parser
 
@@ -159,6 +164,16 @@ def _cmd_analyze(args) -> int:
 
     # ── Step 3: Load baseline store ────────────────────────────────────
     store = baseline_store.load_store()
+    
+    if getattr(args, "remove_baseline", False):
+        if baseline_store.remove_baseline(store, exe_key):
+            print("\n[✓] Successfully removed baseline for:")
+            print("    %s" % exe_path)
+        else:
+            print("\n[!] No existing baseline found for:")
+            print("    %s" % exe_path)
+        return 0
+
     existing_baseline = baseline_store.get_baseline(store, exe_key)
 
     # ── Step 4: Baseline learning phase ───────────────────────────────
